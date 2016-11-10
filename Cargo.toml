@@ -1,0 +1,8 @@
+[package]
+name = "vcf-quality-filter"
+version = "0.1.0"
+authors = ["undefined <undefined@localhost>"]
+
+[dependencies]
+rust-htslib="0.*"
+gcollections="0.*"
