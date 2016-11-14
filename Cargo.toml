@@ -3,6 +3,23 @@ name = "vcf-quality-filter"
 version = "0.1.0"
 authors = ["undefined <undefined@localhost>"]
 
+[profile.dev]
+opt-level = 3      # controls the `--opt-level` the compiler builds with
+debug = true       # controls whether the compiler passes `-g`
+debug-assertions = true # controls whether debug assertions are enabled
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = false
+debug-assertions = false
+codegen-units = 1
+panic = 'unwind'
+
 [dependencies]
 rust-htslib="0.*"
+intervallum="0.*"
 gcollections="0.*"
+env_logger="*"
+log="*"
