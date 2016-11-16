@@ -1,1 +1,4 @@
 target
+*.vcf
+*.gz
+*.tbi
