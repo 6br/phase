@@ -4,13 +4,13 @@ version = "0.1.0"
 authors = ["undefined <undefined@localhost>"]
 
 [profile.dev]
-opt-level = 3      # controls the `--opt-level` the compiler builds with
+#opt-level = 1      # controls the `--opt-level` the compiler builds with
 debug = true       # controls whether the compiler passes `-g`
 debug-assertions = true # controls whether debug assertions are enabled
 
 [profile.release]
 opt-level = 3
-debug = false
+debug = true
 rpath = false
 lto = false
 debug-assertions = false
@@ -25,3 +25,4 @@ env_logger="*"
 log="*"
 getopts="*"
 regex="*"
+lazy_static="*"
