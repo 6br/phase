@@ -122,6 +122,7 @@ pub struct Args {
     arg_chr: Option<String>, /* flag_help: bool,
                       * flag_version: bool */
 }
+
 /*
 struct WriteArgs<'a> {
     path: Box<&'a Path>,
@@ -180,7 +181,7 @@ fn main() {
 fn run_sequencial(mut args: &mut Args) {
     let mut output_path = if args.cmd_output {args.arg_output.clone().unwrap()} else {args.arg_input.clone()};
     {
-        let args_m: &mut Args = &mut args; 
+        let args_m: &mut Args = &mut args;
         solve_chromosome(0, &mut args_m.arg_input, &mut output_path);//path.with_extension(ext).as_path());
     }
     solve_chromosome(1, &mut args.arg_input, &mut output_path);//path.with_extension(ext).as_path());
@@ -291,7 +292,6 @@ fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &m
     let mut index = 0;
     let mut previous_end = 0;
     let mut previous_rid = None;
-    // let mut chr = "";
 
     for r in bcf.records() {
         let mut record = r.ok().expect("Error reading Vcf file.");
