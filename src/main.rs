@@ -1,8 +1,6 @@
-
-#![feature(box_syntax)] 
+#![feature(box_syntax)]
 #[macro_use] extern crate lazy_static;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
 extern crate env_logger;
 extern crate rust_htslib;
 extern crate gcollections;
@@ -15,7 +13,6 @@ use getopts::Options;
 use std::env;
 use std::cmp::Ord;
 use std::path::Path;
-//use std::path::PathBuf;
 use regex::Regex;
 
 // use interval::Interval;
@@ -130,21 +127,28 @@ struct WriteArgs<'a> {
     vcf: bool,
 }*/
 
+static VERSION:&'static str = concat!("##vcf-phenotype-quality-filter=", env!("CARGO_PKG_VERSION"));
+
 fn option_parser() -> Option<Args> {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
 
     let mut opts = Options::new();
     opts.optopt("o", "", "set output file name", "FILE");
-    opts.optopt("c", "chr", "filiter by chromosome id(UNIMPLEMENTED!)", "CHRID");
-    opts.optflag("t", "thread", "enable multi-thread");
+    opts.optopt("c", "chr", "filiter by chromosome id", "CHRID");
+    opts.optflag("t", "thread", "enable multi-thread execution");
     opts.optflag("h", "help", "print this help menu");
+    opts.optflag("v", "version", "print version info");
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => panic!(f.to_string()),
     };
     if matches.opt_present("h") {
         print_usage(&program, opts);
+        return None;
+    }
+    if matches.opt_present("v") {
+        println!("{}", VERSION);
         return None;
     }
     let output = matches.opt_str("o");
@@ -168,7 +172,7 @@ fn option_parser() -> Option<Args> {
 
 fn main() {
     env_logger::init().unwrap();
-    let args = option_parser();//.unwrap();
+    let args = option_parser();
     match args {
         Some (mut a) => match a.flag_thread {
             true => {run()},
@@ -182,9 +186,9 @@ fn run_sequencial(mut args: &mut Args) {
     let mut output_path = if args.cmd_output {args.arg_output.clone().unwrap()} else {args.arg_input.clone()};
     {
         let args_m: &mut Args = &mut args;
-        solve_chromosome(0, &mut args_m.arg_input, &mut output_path);//path.with_extension(ext).as_path());
+        solve_chromosome(0, &mut args_m.arg_input, &mut output_path, &mut args_m.arg_chr);//path.with_extension(ext).as_path());
     }
-    solve_chromosome(1, &mut args.arg_input, &mut output_path);//path.with_extension(ext).as_path());
+    solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
 }
 
 fn run<'a>() {
@@ -206,7 +210,7 @@ fn run<'a>() {
         let mut args = option_parser().unwrap();
         //let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
         let mut output_path = if args.cmd_output {args.arg_output.unwrap()} else {args.arg_input.clone()};
-        solve_chromosome(0, &mut args.arg_input, &mut output_path);//path.with_extension(ext).as_path());
+        solve_chromosome(0, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
     });
     let handle2 = thread::spawn(move || {
         // let ext = "_1.".to_string() + path.extension().unwrap().to_str().unwrap();
@@ -214,7 +218,7 @@ fn run<'a>() {
         let mut args = option_parser().unwrap();
         let mut output_path = if args.cmd_output {args.arg_output.unwrap()} else {args.arg_input.clone()};
         //let output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
-        solve_chromosome(1, &mut args.arg_input, &mut output_path);//path.with_extension(ext).as_path());
+        solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
         //let mut args = option_parser().unwrap();
         //let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
         //let mut output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
@@ -269,7 +273,7 @@ fn gen_output_filename<'a>(output_file: &'a String, suffix: &'a String, header: 
     }
 }
 
-fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &mut String) {
+fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &mut String, chr:&mut Option<String>) {
     //println!("#{} => {}",
     //         input_file.to_str().unwrap(),
     //         output_file.to_str().unwrap());
@@ -281,8 +285,8 @@ fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &m
     }
     let bcf: bcf::Reader = bcf::Reader::new(&input_file).ok().expect("Error opening vcf.");
     let mut header = bcf::Header::with_template(&bcf.header);
-    let header_version = concat!("##vcf-phenotype-quality-filter=", env!("CARGO_PKG_VERSION"));
-    let header2 = header.push_record(header_version.as_bytes());
+    //let header_version = concat!("##vcf-phenotype-quality-filter=", env!("CARGO_PKG_VERSION"));
+    let header2 = header.push_record(VERSION.as_bytes());
 
     // Last 2 Argument means (uncompressed: bool, vcf: bool)
     let mut out = gen_output_filename(&output_file, &haploid.to_string(), header2).ok().expect("Error opening vcf.");
@@ -292,10 +296,16 @@ fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &m
     let mut index = 0;
     let mut previous_end = 0;
     let mut previous_rid = None;
+    //let chr_rid = &mut chr.and_then(|n| bcf.header.name2rid(n.as_bytes()).ok());
+    let chr_rid = match chr {
+        &mut Some(ref a) => bcf.header.name2rid(a.as_bytes()).ok(),
+        &mut None => None,
+    };//&bcf.header.name2rid(chr);
 
     for r in bcf.records() {
         let mut record = r.ok().expect("Error reading Vcf file.");
         let rid = record.rid();
+        if chr_rid.is_some() && chr_rid != rid {continue;}
         out.translate(&mut record);
         out.subset(&mut record);
         // record.trim_alleles().ok().except("Error trimming alleles");
