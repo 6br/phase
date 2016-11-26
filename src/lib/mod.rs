@@ -1,5 +1,4 @@
 
-#![feature(box_syntax)]
 extern crate lazy_static;
 extern crate log;
 extern crate env_logger;
@@ -115,10 +114,11 @@ pub struct Args {
     arg_input: String,
     cmd_chr: bool,
     arg_chr: Option<String>, /* flag_help: bool,
-     * flag_version: bool */
+                              * flag_version: bool */
 }
 
-static VERSION:&'static str = concat!("##vcf-phenotype-quality-filter=", env!("CARGO_PKG_VERSION"));
+static VERSION: &'static str = concat!("##vcf-phenotype-quality-filter=",
+                                       env!("CARGO_PKG_VERSION"));
 
 pub fn option_parser() -> Option<Args> {
     let args: Vec<String> = env::args().collect();
@@ -162,10 +162,17 @@ pub fn option_parser() -> Option<Args> {
 }
 
 pub fn run_sequencial(mut args: &mut Args) {
-    let mut output_path = if args.cmd_output {args.arg_output.clone().unwrap()} else {args.arg_input.clone()};
+    let mut output_path = if args.cmd_output {
+        args.arg_output.clone().unwrap()
+    } else {
+        args.arg_input.clone()
+    };
     {
         let args_m: &mut Args = &mut args;
-        solve_chromosome(0, &mut args_m.arg_input, &mut output_path, &mut args_m.arg_chr);
+        solve_chromosome(0,
+                         &mut args_m.arg_input,
+                         &mut output_path,
+                         &mut args_m.arg_chr);
     }
     solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);
 }
@@ -174,30 +181,38 @@ pub fn run_sequencial(mut args: &mut Args) {
 pub fn run<'a>() {
     debug!("Running Multi-Thread");
     // Input should be sorted by vcf-sort, and normalized by bcftools norm, using single sample.
-    //let input_file = Path::new("../chr1.recode.norm.vcf.gz");
-    //let input_file = args.arg_input;
-    //let input_file_ = Arc::new(RefCell::new(input_file));
-    //let input_file_ = Arc::new(input_file);
-    //let args_ = Arc::new(args);
-    //let args_1 = args_.clone();
-    //let args_2 = args_.clone();
-    //let output_file_0 = Path::new("../chr1_phased_haploid_0.vcf");
-    //let output_file_1 = Path::new("../chr1_phased_haploid_1.vcf");
+    // let input_file = Path::new("../chr1.recode.norm.vcf.gz");
+    // let input_file = args.arg_input;
+    // let input_file_ = Arc::new(RefCell::new(input_file));
+    // let input_file_ = Arc::new(input_file);
+    // let args_ = Arc::new(args);
+    // let args_1 = args_.clone();
+    // let args_2 = args_.clone();
+    // let output_file_0 = Path::new("../chr1_phased_haploid_0.vcf");
+    // let output_file_1 = Path::new("../chr1_phased_haploid_1.vcf");
 
-    //let output_path = Path::new("../chr1_phased_haploid.bcf");
+    // let output_path = Path::new("../chr1_phased_haploid.bcf");
     let handle1 = thread::spawn(move || {
         // let ext = "_0.".to_string() + path.extension().unwrap().to_str().unwrap();
         let mut args = option_parser().unwrap();
-        //let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
-        let mut output_path = if args.cmd_output {args.arg_output.unwrap()} else {args.arg_input.clone()};
+        // let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
+        let mut output_path = if args.cmd_output {
+            args.arg_output.unwrap()
+        } else {
+            args.arg_input.clone()
+        };
         solve_chromosome(0, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
     });
     let handle2 = thread::spawn(move || {
         // let ext = "_1.".to_string() + path.extension().unwrap().to_str().unwrap();
-        //solve_chromosome(1, args.arg_input, output_path);//path.with_extension(ext).as_path());
+        // solve_chromosome(1, args.arg_input, output_path);//path.with_extension(ext).as_path());
         let mut args = option_parser().unwrap();
-        let mut output_path = if args.cmd_output {args.arg_output.unwrap()} else {args.arg_input.clone()};
-        //let output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
+        let mut output_path = if args.cmd_output {
+            args.arg_output.unwrap()
+        } else {
+            args.arg_input.clone()
+        };
+        // let output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
         solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
         //let mut args = option_parser().unwrap();
         //let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
@@ -216,10 +231,13 @@ fn with_suffix(filepath: &str, suffix: &String, extension: &'static str) -> Stri
     pathbuf.push_str("_");
     pathbuf.push_str(suffix);
     pathbuf.push_str(extension);
-    return pathbuf
+    return pathbuf;
 }
 
-fn gen_output_filename<'a>(output_file: &'a String, suffix: &'a String, header: &'a bcf::Header) -> Result<bcf::Writer, &'a String> {
+fn gen_output_filename<'a>(output_file: &'a String,
+                           suffix: &'a String,
+                           header: &'a bcf::Header)
+                           -> Result<bcf::Writer, &'a String> {
     let regex_vcfgz = Regex::new("(.*).vcf.gz$").unwrap();
     let regex_vcf = Regex::new("(.*).vcf$").unwrap();
     let regex_bcf = Regex::new("(.*).bcf$").unwrap();
@@ -230,34 +248,52 @@ fn gen_output_filename<'a>(output_file: &'a String, suffix: &'a String, header: 
     match vcfgz {
         Some(a) => {
             let k = with_suffix(a.at(1).unwrap(), suffix, ".vcf.gz");
-            return Ok(bcf::Writer::new(&k, header, false, true).ok().expect("Error opening VCF"))},
-        None => match vcf {
-            Some(a) => {
-                let k = with_suffix(a.at(1).unwrap(), suffix, ".vcf");
-                return Ok(bcf::Writer::new(&k, header, true, true).ok().expect("Error opening VCF"))},
-            None => match bcf {
+            return Ok(bcf::Writer::from_path(&k, header, false, true)
+                      .ok()
+                      .expect("Error opening VCF"));
+        }
+        None => {
+            match vcf {
                 Some(a) => {
-                    let k = with_suffix(a.at(1).unwrap(), suffix, ".bcf");
-                    return Ok(bcf::Writer::new(&k, header, true, false).ok().expect("Error opening VCF"))},
-                None => return Err(output_file)
+                    let k = with_suffix(a.at(1).unwrap(), suffix, ".vcf");
+                    return Ok(bcf::Writer::from_path(&k, header, true, true)
+                        .ok()
+                        .expect("Error opening VCF"));
+                }
+                None => {
+                    match bcf {
+                        Some(a) => {
+                            let k = with_suffix(a.at(1).unwrap(), suffix, ".bcf");
+                            return Ok(bcf::Writer::from_path(&k, header, true, false)
+                                .ok()
+                                .expect("Error opening VCF"));
+                        }
+                        None => return Err(output_file),
+                    }
+                }
             }
         }
     }
 }
 
-fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &mut String, chr:&mut Option<String>) {
+fn solve_chromosome<'a>(haploid: usize,
+                        input_file: &mut String,
+                        output_file: &mut String,
+                        chr: &mut Option<String>) {
 
     let input_file = Path::new(&input_file);
     if !input_file.exists() {
         println!("Error: No input file.");
         return;
     }
-    let bcf: bcf::Reader = bcf::Reader::new(&input_file).ok().expect("Error opening vcf.");
+    let bcf: bcf::Reader = bcf::Reader::from_path(&input_file).ok().expect("Error opening vcf.");
     let mut header = bcf::Header::with_template(&bcf.header);
     let header2 = header.push_record(VERSION.as_bytes());
 
     // Last 2 Argument means (uncompressed: bool, vcf: bool)
-    let mut out = gen_output_filename(&output_file, &haploid.to_string(), header2).ok().expect("Error opening vcf.");
+    let mut out = gen_output_filename(&output_file, &haploid.to_string(), header2)
+        .ok()
+        .expect("Error opening vcf.");
 
     let mut heap = BinaryHeap::new();
     let mut index = 0;
@@ -271,7 +307,9 @@ fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &m
     for r in bcf.records() {
         let mut record = r.ok().expect("Error reading Vcf file.");
         let rid = record.rid();
-        if chr_rid.is_some() && chr_rid != rid {continue;}
+        if chr_rid.is_some() && chr_rid != rid {
+            continue;
+        }
         out.translate(&mut record);
         out.subset(&mut record);
 
@@ -298,7 +336,6 @@ fn solve_chromosome<'a>(haploid: usize, input_file: &mut String, output_file: &m
             }
         };
         let genotype = genotypes(&mut record).unwrap().get(0);
-        // if genotype.fmt() == "1|1" {
         if genotype[haploid].index().unwrap() == 1 {
             heap.push(Vcf {
                 idx: index,
