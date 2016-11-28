@@ -2,25 +2,14 @@
 name = "vcf-quality-filter"
 version = "0.1.0"
 authors = ["undefined <undefined@localhost>"]
-
-[profile.dev]
-#opt-level = 1      # controls the `--opt-level` the compiler builds with
-debug = true       # controls whether the compiler passes `-g`
-debug-assertions = true # controls whether debug assertions are enabled
-
-[profile.release]
-opt-level = 3
-debug = true
-rpath = false
-lto = false
-debug-assertions = false
-codegen-units = 1
-panic = 'unwind'
+readme = "README.md"
+description = ""
+keywords = ["bioinformatics", "vcf", "structural variants", "haplotype"]
 
 [dependencies]
 rust-htslib="0.*"
-intervallum="0.*"
-gcollections="0.*"
+intervallum="*"
+gcollections="*"
 env_logger="*"
 log="*"
 getopts="*"

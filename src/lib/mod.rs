@@ -117,9 +117,10 @@ pub struct Args {
                               * flag_version: bool */
 }
 
-static VERSION: &'static str = concat!("##vcf-phenotype-quality-filter=",
-                                       env!("CARGO_PKG_VERSION"));
+static VERSION: &'static str = concat!("##vcf-phenotype-quality-filter=", env!("CARGO_PKG_VERSION"));
 
+
+/// Call to parse args.
 pub fn option_parser() -> Option<Args> {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
@@ -161,6 +162,7 @@ pub fn option_parser() -> Option<Args> {
     });
 }
 
+/// Call to run with single thread.
 pub fn run_sequencial(mut args: &mut Args) {
     let mut output_path = if args.cmd_output {
         args.arg_output.clone().unwrap()
@@ -177,46 +179,28 @@ pub fn run_sequencial(mut args: &mut Args) {
     solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);
 }
 
-
+/// Call to run with 2 threads.
 pub fn run<'a>() {
     debug!("Running Multi-Thread");
     // Input should be sorted by vcf-sort, and normalized by bcftools norm, using single sample.
-    // let input_file = Path::new("../chr1.recode.norm.vcf.gz");
-    // let input_file = args.arg_input;
-    // let input_file_ = Arc::new(RefCell::new(input_file));
-    // let input_file_ = Arc::new(input_file);
-    // let args_ = Arc::new(args);
-    // let args_1 = args_.clone();
-    // let args_2 = args_.clone();
-    // let output_file_0 = Path::new("../chr1_phased_haploid_0.vcf");
-    // let output_file_1 = Path::new("../chr1_phased_haploid_1.vcf");
 
-    // let output_path = Path::new("../chr1_phased_haploid.bcf");
     let handle1 = thread::spawn(move || {
-        // let ext = "_0.".to_string() + path.extension().unwrap().to_str().unwrap();
         let mut args = option_parser().unwrap();
-        // let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
         let mut output_path = if args.cmd_output {
             args.arg_output.unwrap()
         } else {
             args.arg_input.clone()
         };
-        solve_chromosome(0, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
+        solve_chromosome(0, &mut args.arg_input, &mut output_path, &mut args.arg_chr);
     });
     let handle2 = thread::spawn(move || {
-        // let ext = "_1.".to_string() + path.extension().unwrap().to_str().unwrap();
-        // solve_chromosome(1, args.arg_input, output_path);//path.with_extension(ext).as_path());
         let mut args = option_parser().unwrap();
         let mut output_path = if args.cmd_output {
             args.arg_output.unwrap()
         } else {
             args.arg_input.clone()
         };
-        // let output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
-        solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);//path.with_extension(ext).as_path());
-        //let mut args = option_parser().unwrap();
-        //let output_path = if args.cmd_output {&args.arg_output} else {&args.arg_input};
-        //let mut output_path = if args.cmd_output {args.arg_output} else {args.arg_input.clone()};
+        solve_chromosome(1, &mut args.arg_input, &mut output_path, &mut args.arg_chr);
     });
     let result = handle1.join();
     let result2 = handle2.join();
@@ -316,13 +300,11 @@ fn solve_chromosome<'a>(haploid: usize,
         let pos = record.pos();
         let alt = record.inner().rlen;
         debug!("x={} {}", pos, alt);
-        // println!("x={}, {}", record.pos(), record.inner().rlen);
         let end = pos + alt as u32;
         let interval = interval::IntervalSet::new(pos + 1, end);
 
-        // println!("{} {}",pos, previous_end);
         if previous_end < pos || previous_rid != rid {
-            // debug!("Resove duplications at {}", pos);
+            debug!("Resove duplications at {}", pos);
             resolve_duplication(&mut heap, &mut out);
             heap.clear();
             // if pos > 811368 { break; }
@@ -351,6 +333,13 @@ fn solve_chromosome<'a>(haploid: usize,
     resolve_duplication(&mut heap, &mut out);
 }
 
+/*fn resolve_dup(mut heap: &mut BinaryHeap<Vcf>, out: &mut Writer) {
+    if heap.len() > 1{
+        heap = resolve_duplication(heap);
+    }
+    output_from_heap(heap, out)
+}*/
+
 fn resolve_duplication(mut heap: &mut BinaryHeap<Vcf>, out: &mut Writer) {
     if heap.len() == 1 {
         output_from_heap(&mut heap, out)
@@ -359,7 +348,6 @@ fn resolve_duplication(mut heap: &mut BinaryHeap<Vcf>, out: &mut Writer) {
         let mut intervalset = vec![].to_interval_set();
 
         while let Some(Vcf { pq, idx, raw_data, range }) = heap.pop() {
-            // println!("{}", intervalset.overlap(&range.upper()));
             if range.upper() - range.lower() == 0 && intervalset.overlap(&range.upper()) {
                 info!("#Remove SNPs at {}, quality: {}", range, pq);
             } else if intervalset.overlap(&range) {
@@ -381,4 +369,15 @@ fn output_from_heap<T: Ord + HasRawData>(output_heap: &mut BinaryHeap<T>, out: &
     while let Some(a) = output_heap.pop() {
         out.write(&a.raw_data()).ok().expect("Error Writing Vcf file.");
     }
+}
+
+#[test]
+fn with_suffix_works() {
+    assert_eq!(with_suffix("/root/foo",&1.to_string(),".txt"), "/root/foo_1.txt");
+}
+
+#[test]
+fn gen_output_filename_works(){
+    let h = bcf::Header::new();
+    assert_eq!(gen_output_filename(&0.to_string(),&1.to_string(),&h), true)
 }
