@@ -231,7 +231,7 @@ fn gen_output_filename<'a>(output_file: &'a String,
 
     match vcfgz {
         Some(a) => {
-            let k = with_suffix(a.at(1).unwrap(), suffix, ".vcf.gz");
+            let k = with_suffix(a.get(1).unwrap().as_str(), suffix, ".vcf.gz");
             return Ok(bcf::Writer::from_path(&k, header, false, true)
                       .ok()
                       .expect("Error opening VCF"));
@@ -239,7 +239,7 @@ fn gen_output_filename<'a>(output_file: &'a String,
         None => {
             match vcf {
                 Some(a) => {
-                    let k = with_suffix(a.at(1).unwrap(), suffix, ".vcf");
+                    let k = with_suffix(a.get(1).unwrap().as_str(), suffix, ".vcf");
                     return Ok(bcf::Writer::from_path(&k, header, true, true)
                         .ok()
                         .expect("Error opening VCF"));
@@ -247,7 +247,7 @@ fn gen_output_filename<'a>(output_file: &'a String,
                 None => {
                     match bcf {
                         Some(a) => {
-                            let k = with_suffix(a.at(1).unwrap(), suffix, ".bcf");
+                            let k = with_suffix(a.get(1).unwrap().as_str(), suffix, ".bcf");
                             return Ok(bcf::Writer::from_path(&k, header, true, false)
                                 .ok()
                                 .expect("Error opening VCF"));
@@ -270,8 +270,8 @@ fn solve_chromosome<'a>(haploid: usize,
         println!("Error: No input file.");
         return;
     }
-    let bcf: bcf::Reader = bcf::Reader::from_path(&input_file).ok().expect("Error opening vcf.");
-    let mut header = bcf::Header::with_template(&bcf.header);
+    let mut bcf: bcf::Reader = bcf::Reader::from_path(&input_file).ok().expect("Error opening vcf.");
+    let mut header = bcf::Header::with_template(&bcf.header());
     let header2 = header.push_record(VERSION.as_bytes());
 
     // Last 2 Argument means (uncompressed: bool, vcf: bool)
@@ -284,7 +284,7 @@ fn solve_chromosome<'a>(haploid: usize,
     let mut previous_end = 0;
     let mut previous_rid = None;
     let chr_rid = match chr {
-        &mut Some(ref a) => bcf.header.name2rid(a.as_bytes()).ok(),
+        &mut Some(ref a) => bcf.header().name2rid(a.as_bytes()).ok(),
         &mut None => None,
     };
 
